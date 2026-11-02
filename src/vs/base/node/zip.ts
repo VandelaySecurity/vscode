@@ -151,7 +151,21 @@ function extractZip(zipfile: ZipFile, targetPath: string, options: IOptions, tok
 			// directory file names end with '/'
 			if (/\/$/.test(fileName)) {
 				const targetFileName = path.join(targetPath, fileName);
+				const normalizedTarget = path.resolve(targetPath);
+				const normalizedFile = path.resolve(targetFileName);
+				if (!normalizedFile.startsWith(normalizedTarget + path.sep) && normalizedFile !== normalizedTarget) {
+					readNextEntry(token);
+					return;
+				}
 				last = createCancelablePromise(token => promises.mkdir(targetFileName, { recursive: true }).then(() => readNextEntry(token)).then(undefined, e));
+				return;
+			}
+
+			const targetFileName = path.join(targetPath, fileName);
+			const normalizedTarget = path.resolve(targetPath);
+			const normalizedFile = path.resolve(targetFileName);
+			if (!normalizedFile.startsWith(normalizedTarget + path.sep) && normalizedFile !== normalizedTarget) {
+				readNextEntry(token);
 				return;
 			}
 

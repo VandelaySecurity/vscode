@@ -56,6 +56,43 @@ export function expandSSHProxyCommand(command: string, host: string, originalHos
 	return result;
 }
 
+function parseCommandToArgs(command: string): string[] {
+	const args: string[] = [];
+	let current = '';
+	let quote: '\'' | '"' | undefined;
+	let i = 0;
+	
+	while (i < command.length) {
+		const char = command[i];
+		
+		if (char === '\\' && i + 1 < command.length && quote !== '\'') {
+			current += command[i + 1];
+			i += 2;
+		} else if ((char === '"' || char === '\'') && !quote) {
+			quote = char;
+			i++;
+		} else if (char === quote) {
+			quote = undefined;
+			i++;
+		} else if ((char === ' ' || char === '\t') && !quote) {
+			if (current) {
+				args.push(current);
+				current = '';
+			}
+			i++;
+		} else {
+			current += char;
+			i++;
+		}
+	}
+	
+	if (current) {
+		args.push(current);
+	}
+	
+	return args;
+}
+
 /** Owns the proxy process and the raw SSH stream it provides. */
 export class SSHProxyCommand extends Disposable {
 	readonly stream: Duplex;
@@ -65,7 +102,13 @@ export class SSHProxyCommand extends Disposable {
 
 	constructor(command: string, logService: ILogService, windows = process.platform === 'win32', terminateProcess: typeof killTree = killTree) {
 		super();
-		this._child = spawn(command, { shell: true, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+		const args = parseCommandToArgs(command);
+		if (args.length === 0) {
+			throw new Error('SSH ProxyCommand cannot be empty');
+		}
+		const executable = args[0];
+		const execArgs = args.slice(1);
+		this._child = spawn(executable, execArgs, { shell: false, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
 		this.stream = Duplex.from({ readable: this._child.stdout, writable: this._child.stdin });
 		this._register(toDisposable(() => {
 			this._stopped = true;

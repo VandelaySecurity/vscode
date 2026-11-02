@@ -200,8 +200,13 @@ export class SnapUpdateService extends AbstractUpdateService {
 		this.logService.trace('update#quitAndInstall(): running raw#quitAndInstall()');
 
 		// Allow 3 seconds for VS Code to close
-		spawn('sleep 3 && ' + path.basename(process.argv[0]), {
-			shell: true,
+		const execPath = path.basename(process.argv[0]);
+		// Validate that execPath contains only safe characters to prevent command injection
+		if (!/^[a-zA-Z0-9._-]+$/.test(execPath)) {
+			this.logService.error('update#quitAndInstall(): Invalid executable name, aborting restart');
+			return;
+		}
+		spawn('sh', ['-c', `sleep 3 && ${execPath}`], {
 			detached: true,
 			stdio: 'ignore',
 		});

@@ -84,67 +84,72 @@ export class NodeExtHostMpcService extends ExtHostMcpService {
 				for (const [key, value] of parseEnvFile(await readFile(launch.envFile, 'utf-8'))) {
 					env[key] = value;
 				}
-			} catch (e) {
-				onError(`Failed to read envFile '${launch.envFile}': ${e.message}`);
-				return;
-			}
-		}
-		for (const [key, value] of Object.entries(launch.env)) {
-			// For PATH, we want to append to the existing PATH instead of overwriting it.
-			if (key.toUpperCase() === 'PATH' && value !== null) {
-				env[key] = env[key] ? `${env[key]}${path.delimiter}${String(value)}` : String(value);
-				continue;
-			}
-			env[key] = value === null ? undefined : String(value);
-		}
-
-		let child: ChildProcessWithoutNullStreams;
-		try {
-			const home = homedir();
-			let cwd = launch.cwd ? untildify(launch.cwd, home) : (defaultCwd?.fsPath || home);
-			if (!path.isAbsolute(cwd)) {
-				cwd = defaultCwd ? path.join(defaultCwd.fsPath, cwd) : path.join(home, cwd);
-			}
-
-			const { executable, args, shell } = await formatSubprocessArguments(
-				untildify(launch.command, home),
-				launch.args.map(a => untildify(a, home)),
-				cwd,
-				env
-			);
-
-			this._proxy.$onDidPublishLog(id, LogLevel.Debug, `Server command line: ${executable} ${args.join(' ')}`);
-			child = spawn(executable, args, {
-				stdio: 'pipe',
-				cwd,
-				env,
-				shell,
-			});
 		} catch (e) {
-			onError(e);
+			onError(`Failed to read envFile '${launch.envFile}': ${e.message}`);
+			return;
+		}
+	}
+	for (const [key, value] of Object.entries(launch.env)) {
+		// For PATH, we want to append to the existing PATH instead of overwriting it.
+		if (key.toUpperCase() === 'PATH' && value !== null) {
+			env[key] = env[key] ? `${env[key]}${path.delimiter}${String(value)}` : String(value);
+			continue;
+		}
+		env[key] = value === null ? undefined : String(value);
+	}
+
+	let child: ChildProcessWithoutNullStreams;
+	try {
+		const home = homedir();
+		let cwd = launch.cwd ? untildify(launch.cwd, home) : (defaultCwd?.fsPath || home);
+		if (!path.isAbsolute(cwd)) {
+			cwd = defaultCwd ? path.join(defaultCwd.fsPath, cwd) : path.join(home, cwd);
+		}
+
+		const { executable, args, shell: _ } = await formatSubprocessArguments(
+			untildify(launch.command, home),
+			launch.args.map(a => untildify(a, home)),
+			cwd,
+			env
+		);
+
+		if (!path.isAbsolute(executable)) {
+			onError(new Error(`Executable must be an absolute path, got: ${executable}`));
 			return;
 		}
 
-		// Create the connection manager for graceful shutdown
-		const connectionManager = new McpStdioStateHandler(child, message => this._proxy.$onDidPublishLog(id, LogLevel.Debug, message));
-
-		this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Starting });
-
-		child.stdout.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidReceiveMessage(id, line.toString()));
-
-		child.stdin.on('error', onError);
-		child.stdout.on('error', onError);
-
-		// Stderr handling is not currently specified https://github.com/modelcontextprotocol/specification/issues/177
-		// Just treat it as generic log data for now
-		child.stderr.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidPublishLog(id, LogLevel.Warning, `[server stderr] ${line.toString().trimEnd()}`));
-
-		child.on('spawn', () => this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Running }));
-
-		child.on('error', e => {
-			onError(e);
+		this._proxy.$onDidPublishLog(id, LogLevel.Debug, `Server command line: ${executable} ${args.join(' ')}`);
+		child = spawn(executable, args, {
+			stdio: 'pipe',
+			cwd,
+			env,
+			shell: false,
 		});
-		child.on('exit', code => {
+	} catch (e) {
+		onError(e);
+		return;
+	}
+
+	// Create the connection manager for graceful shutdown
+	const connectionManager = new McpStdioStateHandler(child, message => this._proxy.$onDidPublishLog(id, LogLevel.Debug, message));
+
+	this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Starting });
+
+	child.stdout.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidReceiveMessage(id, line.toString()));
+
+	child.stdin.on('error', onError);
+	child.stdout.on('error', onError);
+
+	// Stderr handling is not currently specified https://github.com/modelcontextprotocol/specification/issues/177
+	// Just treat it as generic log data for now
+	child.stderr.pipe(new StreamSplitter('\n')).on('data', line => this._proxy.$onDidPublishLog(id, LogLevel.Warning, `[server stderr] ${line.toString().trimEnd()}`));
+
+	child.on('spawn', () => this._proxy.$onDidChangeState(id, { state: McpConnectionState.Kind.Running }));
+
+	child.on('error', e => {
+		onError(e);
+	});
+	child.on('exit', code => {
 			this.nodeServers.deleteAndDispose(id);
 
 			if (code === 0 || connectionManager.stopped) {

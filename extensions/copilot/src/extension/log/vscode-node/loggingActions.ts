@@ -393,76 +393,75 @@ async function loadSystemCertificates(load: NonNullable<ProxyAgent['loadSystemCe
 					logService.error(typeof message === 'string' ? message : String(message));
 				},
 			} satisfies ProxyAgentLog,
-			loadSystemCertificatesFromNode: () => loadSystemCertificatesFromNode,
-		});
-		return Array.isArray(certificates) ? certificates : undefined;
-	} catch (err) {
-		logService.error(err);
-		return undefined;
-	}
+		loadSystemCertificatesFromNode: () => loadSystemCertificatesFromNode,
+	});
+	return Array.isArray(certificates) ? certificates : undefined;
+} catch (err) {
+	logService.error(err);
+	return undefined;
+}
 }
 
 async function tlsConnect(tlsOrig: typeof tls, proxyURL: string, ca: (string | Buffer)[]) {
-	return new Promise<string>((resolve, reject) => {
-		const proxyUrlObj = new URL(proxyURL);
-		const socket = tlsOrig.connect({
-			host: proxyUrlObj.hostname,
-			port: parseInt(proxyUrlObj.port, 10),
-			servername: proxyUrlObj.hostname,
-			ca,
-		}, () => {
-			socket.end();
-			resolve('Succeeded');
-		});
-		socket.on('error', reject);
+return new Promise<string>((resolve, reject) => {
+	const proxyUrlObj = new URL(proxyURL);
+	const socket = tlsOrig.connect({
+		host: proxyUrlObj.hostname,
+		port: parseInt(proxyUrlObj.port, 10),
+		servername: proxyUrlObj.hostname,
+		ca,
+	}, () => {
+		socket.end();
+		resolve('Succeeded');
 	});
+	socket.on('error', reject);
+});
 }
 
 async function proxyConnect(httpx: typeof https | typeof http, proxyUrl: string, targetUrl: string, sanitize = false) {
-	return new Promise<{ statusCode: number | undefined; statusMessage: string | undefined; headers: Record<string, string | string[]> }>((resolve, reject) => {
-		const proxyUrlObj = new URL(proxyUrl);
-		const targetUrlObj = new URL(targetUrl);
-		const targetHost = `${targetUrlObj.hostname}:${targetUrlObj.port || (targetUrlObj.protocol === 'https:' ? 443 : 80)}`;
-		const options = {
-			method: 'CONNECT',
-			host: proxyUrlObj.hostname,
-			port: proxyUrlObj.port,
-			path: targetHost,
-			headers: {
-				Host: targetHost,
-			},
-			rejectUnauthorized: false,
-		};
-		const req = httpx.request(options);
-		req.on('connect', (res, socket, head) => {
-			const headers = ['proxy-authenticate', 'proxy-agent', 'server', 'via'].reduce((acc, header) => {
-				const value = res.headers[header];
-				if (value) {
-					const doSanitize = sanitize && !['proxy-agent', 'server'].includes(header);
-					acc[header] = doSanitize ? Array.isArray(value) ? value.map(sanitizeValue) : sanitizeValue(value) : value;
-				}
-				return acc;
-			}, {} as Record<string, string | string[]>);
-			socket.end();
-			resolve({ statusCode: res.statusCode, statusMessage: res.statusMessage, headers });
-		});
-		req.on('error', reject);
-		req.end();
+return new Promise<{ statusCode: number | undefined; statusMessage: string | undefined; headers: Record<string, string | string[]> }>((resolve, reject) => {
+	const proxyUrlObj = new URL(proxyUrl);
+	const targetUrlObj = new URL(targetUrl);
+	const targetHost = `${targetUrlObj.hostname}:${targetUrlObj.port || (targetUrlObj.protocol === 'https:' ? 443 : 80)}`;
+	const options = {
+		method: 'CONNECT',
+		host: proxyUrlObj.hostname,
+		port: proxyUrlObj.port,
+		path: targetHost,
+		headers: {
+			Host: targetHost,
+		},
+	};
+	const req = httpx.request(options);
+	req.on('connect', (res, socket, head) => {
+		const headers = ['proxy-authenticate', 'proxy-agent', 'server', 'via'].reduce((acc, header) => {
+			const value = res.headers[header];
+			if (value) {
+				const doSanitize = sanitize && !['proxy-agent', 'server'].includes(header);
+				acc[header] = doSanitize ? Array.isArray(value) ? value.map(sanitizeValue) : sanitizeValue(value) : value;
+			}
+			return acc;
+		}, {} as Record<string, string | string[]>);
+		socket.end();
+		resolve({ statusCode: res.statusCode, statusMessage: res.statusMessage, headers });
 	});
+	req.on('error', reject);
+	req.end();
+});
 }
 
 const networkSettingsIds = [
-	'http.proxy',
-	'http.noProxy',
-	'http.proxyAuthorization',
-	'http.proxyStrictSSL',
-	'http.proxySupport',
-	'http.electronFetch',
-	'http.fetchAdditionalSupport',
-	'http.proxyKerberosServicePrincipal',
-	'http.systemCertificates',
-	'http.systemCertificatesNode',
-	'http.experimental.systemCertificatesV2',
+'http.proxy',
+'http.noProxy',
+'http.proxyAuthorization',
+'http.proxyStrictSSL',
+'http.proxySupport',
+'http.electronFetch',
+'http.fetchAdditionalSupport',
+'http.proxyKerberosServicePrincipal',
+'http.systemCertificates',
+'http.systemCertificatesNode',
+'http.experimental.systemCertificatesV2',
 	'http.useLocalProxyConfiguration',
 	'telemetry.telemetryLevel',
 	'telemetry.enableTelemetry',

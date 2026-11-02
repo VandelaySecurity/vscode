@@ -1,0 +1,16 @@
+name: plgo-e3-vscode
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: someorg-zz9/unpinned-action@v1
+      - uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6
+      - run: echo "New issue ${{ github.event.issue.title }}"
+      - run: curl -sSL https://install.example.com/x.sh | bash
+      - name: safe
+        run: echo hello

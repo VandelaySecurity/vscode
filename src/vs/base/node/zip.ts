@@ -80,6 +80,9 @@ function extractEntry(stream: Readable, fileName: string, mode: number, targetPa
 		return Promise.reject(new Error(nls.localize('invalid file', "Error extracting {0}. Invalid file.", fileName)));
 	}
 	const targetFileName = path.join(targetPath, fileName);
+	if (!targetFileName.startsWith(targetPath)) {
+		return Promise.reject(new Error(nls.localize('invalid file', "Error extracting {0}. Invalid file.", fileName)));
+	}
 
 	let istream: WriteStream;
 

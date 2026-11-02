@@ -200,11 +200,11 @@ export class SnapUpdateService extends AbstractUpdateService {
 		this.logService.trace('update#quitAndInstall(): running raw#quitAndInstall()');
 
 		// Allow 3 seconds for VS Code to close
-		spawn('sleep 3 && ' + path.basename(process.argv[0]), {
-			shell: true,
+		const child = spawn('sh', ['-c', 'sleep 3; exec "$0"', process.argv[0]], {
 			detached: true,
 			stdio: 'ignore',
 		});
+		child.unref();
 	}
 
 	private async isUpdateAvailable(): Promise<boolean> {

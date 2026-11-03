@@ -55,14 +55,16 @@ export async function spawnHelper2(command: string, args: string[], options: Spa
 	});
 }
 
-export async function execHelper(commandLine: string, options: ExecOptionsWithStringEncoding): Promise<string> {
+export async function execHelper(command: string, args: string[], options: SpawnOptionsWithoutStdio): Promise<string> {
 	return new Promise<string>((resolve, reject) => {
-		exec(commandLine, options, (error, stdout) => {
-			if (error) {
-				reject(error);
-			} else {
-				resolve(stdout);
-			}
+		const stdout: string[] = [];
+		const stderr: string[] = [];
+		const child = spawn(command, args, options);
+		child.stdout.on('data', (data) => stdout.push(data));
+		child.stderr.on('data', (data) => stderr.push(data));
+		child.on('error', (error) => reject(error));
+		child.on('close', (code) => {
+			resolve(stdout.join(''));
 		});
 	});
 }

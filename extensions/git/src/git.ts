@@ -1609,6 +1609,16 @@ export class Repository {
 	}
 
 	async reflog(ref: string, pattern: string): Promise<string[]> {
+		// Validate ref parameter against git reference naming rules
+		if (!ref || !/^[a-zA-Z0-9/_.-]+$/.test(ref) || ref.startsWith('--')) {
+			throw new Error('Invalid git reference format');
+		}
+
+		// Validate pattern parameter to prevent command injection
+		if (pattern && /[`;&|$()<>]/.test(pattern)) {
+			throw new Error('Invalid pattern: contains shell metacharacters');
+		}
+
 		const args = ['reflog', ref, `--grep-reflog=${pattern}`];
 		const result = await this.exec(args);
 		if (result.exitCode) {

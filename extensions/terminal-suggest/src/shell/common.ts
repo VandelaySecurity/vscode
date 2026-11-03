@@ -7,7 +7,18 @@ import * as vscode from 'vscode';
 import { exec, spawn, type ExecOptionsWithStringEncoding, type SpawnOptionsWithoutStdio } from 'node:child_process';
 import type { ICompletionResource } from '../types';
 
+/**
+ * SECURITY: The command parameter is restricted to known shells. If args contains
+ * user-controlled input, callers MUST sanitize or validate it to prevent injection.
+ */
 export async function spawnHelper(command: string, args: string[], options: SpawnOptionsWithoutStdio): Promise<string> {
+	const ALLOWED_SHELLS = ['bash', 'zsh', 'sh', 'fish', 'pwsh', 'powershell', 'cmd.exe', 'cmd'];
+	if (!ALLOWED_SHELLS.includes(command)) {
+		throw new Error(`Command not allowed: ${command}. Only known shells are permitted.`);
+	}
+	if (options.shell === true) {
+		throw new Error('Shell option must not be enabled to prevent command injection.');
+	}
 	// This must be run with interactive, otherwise there's a good chance aliases won't
 	// be set up. Note that this could differ from the actual aliases as it's a new bash
 	// session, for the same reason this would not include aliases that are created
@@ -33,7 +44,18 @@ export interface ISpawnHelperResult {
 	stderr: string;
 	exitCode: number;
 }
+/**
+ * SECURITY: The command parameter is restricted to known shells. If args contains
+ * user-controlled input, callers MUST sanitize or validate it to prevent injection.
+ */
 export async function spawnHelper2(command: string, args: string[], options: SpawnOptionsWithoutStdio): Promise<ISpawnHelperResult> {
+	const ALLOWED_SHELLS = ['bash', 'zsh', 'sh', 'fish', 'pwsh', 'powershell', 'cmd.exe', 'cmd'];
+	if (!ALLOWED_SHELLS.includes(command)) {
+		throw new Error(`Command not allowed: ${command}. Only known shells are permitted.`);
+	}
+	if (options.shell === true) {
+		throw new Error('Shell option must not be enabled to prevent command injection.');
+	}
 	// This must be run with interactive, otherwise there's a good chance aliases won't
 	// be set up. Note that this could differ from the actual aliases as it's a new bash
 	// session, for the same reason this would not include aliases that are created

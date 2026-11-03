@@ -2007,7 +2007,7 @@
     "@vscode/markdown-editor": "0.0.2-153",
     "@vscode/observables": "^0.1.1-0",
     "@vscode/web-editors": "^0.0.2-41",
-    "dompurify": "^3.4.10",
+    "dompurify": "^3.4.17",
     "highlight.js": "^11.8.0",
     "katex": "^0.16.33",
     "markdown-it": "^14.2.0",

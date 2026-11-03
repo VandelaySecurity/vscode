@@ -1119,7 +1119,7 @@ const executeLoginShell = async ({
 	executable: string;
 }): Promise<string> => {
 	return new Promise((resolve, reject) => {
-		exec(`${executable} -c "${command}"`, (error: ExecException | null, stdout: string, stderr: string) => {
+		execFile(executable, ['-c', command], (error: ExecException | null, stdout: string, stderr: string) => {
 			if (error) {
 				reject(stderr);
 			} else {

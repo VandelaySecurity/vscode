@@ -1985,7 +1985,19 @@ export class Repository {
 	async getMergeBase(ref1: string, ref2: string, ...refs: string[]): Promise<string | undefined> {
 		try {
 			const args = ['merge-base'];
+			
+			const isValidGitRef = (ref: string): boolean => {
+				return ref.length > 0 && /^[a-zA-Z0-9/_.\-^~@{}]+$/.test(ref);
+			};
+
+			if (!isValidGitRef(ref1) || !isValidGitRef(ref2)) {
+				throw new Error('Invalid git reference format');
+			}
+
 			if (refs.length !== 0) {
+				if (refs.some(ref => !isValidGitRef(ref))) {
+					throw new Error('Invalid git reference format');
+				}
 				args.push('--octopus');
 				args.push(...refs);
 			}

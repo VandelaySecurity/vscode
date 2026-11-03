@@ -3074,6 +3074,15 @@ export class Repository {
 			throw new CancellationError();
 		}
 
+		// Validate remote to prevent command injection
+		if (!remote || typeof remote !== 'string') {
+			throw new Error('Invalid remote parameter');
+		}
+		// Reject shell metacharacters and ensure remote matches expected patterns
+		if (/[;&|`$()<>\n\r]/.test(remote)) {
+			throw new Error('Remote name contains invalid characters');
+		}
+
 		const args = ['ls-remote'];
 
 		if (opts?.heads) {

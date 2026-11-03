@@ -465,7 +465,7 @@ export class MissionControlProjects extends Disposable {
 	}
 
 	private _cloneUrl(value: string): URL {
-		const scp = /^(?:git@)?(?<host>[\w.-]+):(?<path>[^/].*)$/.exec(value);
+		const scp = /^(?:git@)?(?<host>[\w.-]+):(?<path>[\w./-]+)$/.exec(value);
 		let url: URL;
 		try {
 			url = new URL(scp?.groups ? `ssh://git@${scp.groups.host}/${scp.groups.path}` : value);

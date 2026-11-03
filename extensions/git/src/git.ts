@@ -3074,6 +3074,10 @@ export class Repository {
 			throw new CancellationError();
 		}
 
+		if (!/^[a-zA-Z0-9._\-/:@]+$/.test(remote)) {
+			throw new Error('Invalid remote name: contains disallowed characters');
+		}
+
 		const args = ['ls-remote'];
 
 		if (opts?.heads) {

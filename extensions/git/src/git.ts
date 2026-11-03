@@ -2539,6 +2539,13 @@ export class Repository {
 			args.push('-r');
 		}
 
+		if (remote && !/^[a-zA-Z0-9._/-]+$/.test(remote)) {
+			throw new Error('Invalid remote name: contains unsafe characters');
+		}
+		if (branch && !/^[a-zA-Z0-9._/-]+$/.test(branch)) {
+			throw new Error('Invalid branch name: contains unsafe characters');
+		}
+
 		if (remote && branch) {
 			args.push(remote);
 			args.push(branch);

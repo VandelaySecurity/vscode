@@ -703,67 +703,81 @@ export class RawDebugSession implements IDisposable {
 					...args.configuration,
 					...{
 						request: args.request,
-						type: this.dbgr.type,
-						name: args.configuration.name || this.name
-					}
-				};
-				const success = await this.dbgr.startDebugging(config, this.sessionId);
-				if (success) {
-					safeSendResponse(response);
-				} else {
-					response.success = false;
-					response.message = 'Failed to start debugging';
-					safeSendResponse(response);
+					type: this.dbgr.type,
+					name: args.configuration.name || this.name
 				}
-			} catch (err) {
+			};
+			const success = await this.dbgr.startDebugging(config, this.sessionId);
+			if (success) {
+				safeSendResponse(response);
+			} else {
 				response.success = false;
-				response.message = err.message;
+				response.message = 'Failed to start debugging';
 				safeSendResponse(response);
 			}
-		} else {
+		} catch (err) {
 			response.success = false;
-			response.message = `unknown request '${request.command}'`;
+			response.message = err.message;
 			safeSendResponse(response);
 		}
+	} else {
+		response.success = false;
+		response.message = `unknown request '${request.command}'`;
+		safeSendResponse(response);
 	}
+}
 
-	private launchVsCode(vscodeArgs: ILaunchVSCodeArguments): Promise<IOpenExtensionWindowResult> {
+private launchVsCode(vscodeArgs: ILaunchVSCodeArguments): Promise<IOpenExtensionWindowResult> {
 
-		const args: string[] = [];
+	const args: string[] = [];
 
-		for (const arg of vscodeArgs.args) {
-			const a2 = (arg.prefix || '') + (arg.path || '');
-			const match = /^--(.+)=(.+)$/.exec(a2);
-			if (match && match.length === 3) {
-				const key = match[1];
-				let value = match[2];
+	const ALLOWED_ARG_KEYS = new Set(['file-uri', 'folder-uri', 'extensionDevelopmentPath', 'extensionTestsPath', 'inspect-extensions', 'inspect-brk-extensions']);
 
-				if ((key === 'file-uri' || key === 'folder-uri') && !isUriString(arg.path)) {
-					value = isUriString(value) ? value : URI.file(value).toString();
-				}
-				args.push(`--${key}=${value}`);
-			} else {
-				args.push(a2);
+	for (const arg of vscodeArgs.args) {
+		if (arg.prefix && arg.prefix !== '') {
+			continue; // Reject arguments with custom prefixes
+		}
+		const a2 = (arg.prefix || '') + (arg.path || '');
+		const match = /^--(.+)=(.+)$/.exec(a2);
+		if (match && match.length === 3) {
+			const key = match[1];
+			if (!ALLOWED_ARG_KEYS.has(key)) {
+				continue; // Skip disallowed arguments
 			}
-		}
+			let value = match[2];
 
-		if (vscodeArgs.env) {
-			args.push(`--extensionEnvironment=${JSON.stringify(vscodeArgs.env)}`);
-		}
+			// Validate that values don't contain shell metacharacters
+			if (/[;&|`$(){}[\]<>]/.test(value)) {
+				continue;
+			}
 
-		return this.extensionHostDebugService.openExtensionDevelopmentHostWindow(args, !!vscodeArgs.debugRenderer);
+			if ((key === 'file-uri' || key === 'folder-uri') && !isUriString(arg.path)) {
+				value = isUriString(value) ? value : URI.file(value).toString();
+			}
+			args.push(`--${key}=${value}`);
+		} else {
+			// Reject arguments that don't match the expected --key=value format
+			continue;
+		}
 	}
 
-	private send<R extends DebugProtocol.Response>(command: string, args: any, token?: CancellationToken, timeout?: number, showErrors = true): Promise<R | undefined> {
-		return new Promise<DebugProtocol.Response | undefined>((completeDispatch, errorDispatch) => {
-			if (!this.debugAdapter) {
-				if (this.inShutdown) {
-					// We are in shutdown silently complete
-					completeDispatch(undefined);
-				} else {
-					errorDispatch(new Error(nls.localize('noDebugAdapter', "No debugger available found. Can not send '{0}'.", command)));
-				}
-				return;
+	if (vscodeArgs.env) {
+		args.push(`--extensionEnvironment=${JSON.stringify(vscodeArgs.env)}`);
+	}
+
+	return this.extensionHostDebugService.openExtensionDevelopmentHostWindow(args, !!vscodeArgs.debugRenderer);
+}
+
+private send<R extends DebugProtocol.Response>(command: string, args: any, token?: CancellationToken, timeout?: number, showErrors = true): Promise<R | undefined> {
+	return new Promise<DebugProtocol.Response | undefined>((completeDispatch, errorDispatch) => {
+		if (!this.debugAdapter) {
+			if (this.inShutdown) {
+				// We are in shutdown silently complete
+				completeDispatch(undefined);
+			} else {
+				errorDispatch(new Error(nls.localize('noDebugAdapter', "No debugger available found. Can not send '{0}'.", command)));
+			}
+			return;
 			}
 
 			let cancelationListener: IDisposable;

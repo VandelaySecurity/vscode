@@ -2092,6 +2092,9 @@ export class Repository {
 		}
 
 		if (treeish) {
+			if (!/^[a-zA-Z0-9_.\/-]+$/.test(treeish)) {
+				throw new Error('Invalid treeish format');
+			}
 			args.push(treeish);
 		}
 

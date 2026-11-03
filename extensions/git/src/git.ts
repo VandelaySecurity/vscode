@@ -3444,6 +3444,10 @@ export class Repository {
 	}
 
 	async revParse(ref: string): Promise<string | undefined> {
+		if (!ref || ref.startsWith('-') || ref.includes('..') || !/^[a-zA-Z0-9/_.\-]+$/.test(ref)) {
+			return undefined;
+		}
+
 		try {
 			const result = await fs.readFile(path.join(this.dotGit.path, ref), 'utf8');
 			return result.trim();

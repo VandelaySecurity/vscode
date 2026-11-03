@@ -1444,6 +1444,25 @@ export class Repository {
 	}
 
 	async config(command: string, scope: string, key: string, value: any = null, options: SpawnOptions = {}): Promise<string> {
+		const validCommands = ['get', 'set', 'unset', 'add', 'replace-all', 'unset-all'];
+		const validScopes = ['local', 'global', 'system', 'worktree', ''];
+		
+		if (command && !validCommands.includes(command)) {
+			throw new Error('Invalid git config command');
+		}
+		
+		if (scope && !validScopes.includes(scope)) {
+			throw new Error('Invalid git config scope');
+		}
+		
+		if (!/^[a-zA-Z0-9._-]+$/.test(key)) {
+			throw new Error('Invalid git config key format');
+		}
+		
+		if (value !== null && (typeof value === 'string' && (value.startsWith('-') || /[\r\n\0]/.test(value)))) {
+			throw new Error('Invalid git config value format');
+		}
+		
 		const args = ['config', `--${command}`];
 
 		if (scope) {

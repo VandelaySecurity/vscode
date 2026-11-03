@@ -1469,6 +1469,11 @@ export class Repository {
 	async getConfigs(scope: string): Promise<{ key: string; value: string }[]> {
 		const args = ['config'];
 
+		const allowedScopes = ['local', 'global', 'system', 'worktree', 'file'];
+		if (scope && !allowedScopes.includes(scope)) {
+			throw new Error('Invalid git config scope');
+		}
+
 		if (scope) {
 			args.push('--' + scope);
 		}

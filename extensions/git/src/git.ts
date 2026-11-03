@@ -2347,6 +2347,11 @@ export class Repository {
 	}
 
 	async clean(paths: string[]): Promise<void> {
+		// Validate all paths before processing
+		for (const p of paths) {
+			this.validatePathForCommand(p);
+		}
+		
 		const pathsByGroup = groupBy(paths.map(sanitizePath), p => path.dirname(p));
 		const groups = Object.keys(pathsByGroup).map(k => pathsByGroup[k]);
 
@@ -2361,6 +2366,15 @@ export class Repository {
 		}
 
 		await Promise.all(promises);
+	}
+
+	private validatePathForCommand(path: string): void {
+		if (!path || path.startsWith('-')) {
+			throw new Error('Invalid path: cannot be empty or start with dash');
+		}
+		if (/[;|&$`\n\r]/.test(path)) {
+			throw new Error('Invalid path: contains shell metacharacters');
+		}
 	}
 
 	async undo(): Promise<void> {

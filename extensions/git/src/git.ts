@@ -2501,6 +2501,18 @@ export class Repository {
 	}
 
 	async fetchTags(options: { remote: string; tags: string[]; force?: boolean }): Promise<void> {
+		// Validate remote name
+		if (!/^[a-zA-Z0-9._\/-]+$/.test(options.remote) || options.remote.startsWith('.') || options.remote.startsWith('/') || options.remote.includes('..')) {
+			throw new Error(`Invalid remote name: ${options.remote}`);
+		}
+
+		// Validate tag names
+		for (const tag of options.tags) {
+			if (!/^[a-zA-Z0-9._\/-]+$/.test(tag) || tag.startsWith('.') || tag.startsWith('/') || tag.includes('..')) {
+				throw new Error(`Invalid tag name: ${tag}`);
+			}
+		}
+
 		const args = ['fetch'];
 		const spawnOptions: SpawnOptions = {
 			env: { 'GIT_HTTP_USER_AGENT': this.git.userAgent }

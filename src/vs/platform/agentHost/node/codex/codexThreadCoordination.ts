@@ -167,8 +167,13 @@ function readThreadResultText(output: readonly string[]): { threadId?: string; c
 	return undefined;
 }
 
+function escapeRegExp(str: string): string {
+	return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function readScriptStringProperty(input: string, key: string): string | undefined {
-	const literal = new RegExp(`\\b${key}\\s*:\\s*(?<literal>"(?:\\\\.|[^"\\\\])*")`).exec(input)?.groups?.['literal'];
+	const escapedKey = escapeRegExp(key);
+	const literal = new RegExp(`\\b${escapedKey}\\s*:\\s*(?<literal>"(?:\\\\.|[^"\\\\])*")`).exec(input)?.groups?.['literal'];
 	if (!literal) {
 		return undefined;
 	}

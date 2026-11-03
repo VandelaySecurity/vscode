@@ -40,7 +40,12 @@ async function exists(filename: string): Promise<boolean> {
 
 function exec(command: string, options: cp.ExecOptions): Promise<{ stdout: string; stderr: string }> {
 	return new Promise<{ stdout: string; stderr: string }>((resolve, reject) => {
-		cp.exec(command, options, (error, stdout, stderr) => {
+		// Parse command string into executable and arguments
+		const parts = command.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+		const executable = parts[0] || '';
+		const args = parts.slice(1).map(arg => arg.replace(/^"(.*)"$/, '$1'));
+		
+		cp.execFile(executable, args, options, (error, stdout, stderr) => {
 			if (error) {
 				reject({ error, stdout, stderr });
 			}

@@ -623,7 +623,60 @@ export class Git {
 		return child;
 	}
 
+	private validateGitArgs(args: string[]): void {
+		if (!args || args.length === 0) {
+			throw new Error('Git arguments array cannot be empty');
+		}
+
+		const allowedCommands = new Set([
+			'add', 'commit', 'push', 'pull', 'fetch', 'clone', 'status', 'log', 'diff',
+			'branch', 'checkout', 'merge', 'rebase', 'reset', 'tag', 'remote', 'config',
+			'show', 'rev-parse', 'ls-files', 'ls-tree', 'rev-list', 'cat-file', 'show-ref',
+			'for-each-ref', 'symbolic-ref', 'update-ref', 'name-rev', 'describe', 'reflog',
+			'stash', 'clean', 'mv', 'rm', 'apply', 'cherry-pick', 'revert', 'bisect',
+			'grep', 'blame', 'shortlog', 'submodule', 'worktree', 'archive', 'bundle',
+			'check-ignore', 'check-attr', 'fsck', 'gc', 'init', 'pack-refs', 'prune',
+			'count-objects', 'verify-commit', 'verify-tag', 'hash-object', 'update-index',
+			'write-tree', 'commit-tree', 'merge-base', 'merge-file'
+		]);
+
+		const subcommand = args[0];
+		if (!allowedCommands.has(subcommand)) {
+			throw new Error(`Git subcommand '${subcommand}' is not allowed`);
+		}
+
+		const dangerousPatterns = [
+			/^--upload-pack=/i,
+			/^--receive-pack=/i,
+			/^--exec=/i,
+			/^--upload-pack$/i,
+			/^--receive-pack$/i,
+			/^--exec$/i
+		];
+
+		for (let i = 0; i < args.length; i++) {
+			const arg = args[i];
+			
+			for (const pattern of dangerousPatterns) {
+				if (pattern.test(arg)) {
+					throw new Error(`Dangerous git argument detected: '${arg}'`);
+				}
+			}
+
+			if (arg === '-c' && i + 1 < args.length) {
+				const configValue = args[i + 1];
+				if (configValue.includes('core.sshCommand') || 
+				    configValue.includes('core.gitProxy') ||
+				    configValue.includes('core.editor') ||
+				    configValue.includes('core.pager')) {
+					throw new Error(`Dangerous git config option detected: '${configValue}'`);
+				}
+			}
+		}
+	}
+
 	private async _exec(args: string[], options: SpawnOptions = {}): Promise<IExecutionResult<string>> {
+		this.validateGitArgs(args);
 		const child = this.spawn(args, options);
 
 		options.onSpawn?.(child);

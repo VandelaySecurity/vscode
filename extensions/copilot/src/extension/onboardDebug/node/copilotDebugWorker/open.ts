@@ -6,11 +6,20 @@
 import { spawn } from 'child_process';
 
 export const openVscodeUri = (remoteCommand: string | undefined, uri: string): Promise<void> => {
+	const ALLOWED_COMMANDS = ['code', 'code-insiders', '/usr/bin/code', '/usr/local/bin/code'];
+	
+	if (!uri.startsWith('vscode://') && !uri.startsWith('vscode-insiders://')) {
+		return Promise.reject(new Error('Invalid URI scheme'));
+	}
+	
 	let command: string;
 	let shell = false;
 	let args = [uri];
 	if (remoteCommand) {
 		const [cmd, ...cmdArgs] = remoteCommand.split(' ');
+		if (!ALLOWED_COMMANDS.includes(cmd) && !ALLOWED_COMMANDS.some(allowed => cmd.endsWith(allowed))) {
+			return Promise.reject(new Error(`Invalid remote command: ${cmd} is not in the allowlist`));
+		}
 		command = cmd;
 		args = [...cmdArgs, uri];
 	} else {

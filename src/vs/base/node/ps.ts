@@ -176,11 +176,13 @@ export function listProcesses(rootPid: number): Promise<ProcessItem> {
 
 				// The cpu usage value reported on Linux is the average over the process lifetime,
 				// recalculate the usage over a one second interval
-				// JSON.stringify is needed to escape spaces, https://github.com/nodejs/node/issues/6803
-				let cmd = JSON.stringify(FileAccess.asFileUri('vs/base/node/cpuUsage.sh').fsPath);
-				cmd += ' ' + pids.join(' ');
+				// Validate PIDs are numeric before passing to execFile
+				if (!pids.every(pid => /^\d+$/.test(String(pid)))) {
+					reject(new Error('Invalid PID format detected'));
+					return;
+				}
 
-				exec(cmd, {}, (err, stdout, stderr) => {
+				execFile(FileAccess.asFileUri('vs/base/node/cpuUsage.sh').fsPath, pids.map(String), {}, (err, stdout, stderr) => {
 					if (err || stderr) {
 						reject(err || new Error(stderr.toString()));
 					} else {

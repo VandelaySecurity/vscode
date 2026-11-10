@@ -182,10 +182,18 @@ function getObjectDisplayValue(element: SettingsTreeSettingElement): IObjectData
 	const { objectProperties, objectPatternProperties, objectAdditionalProperties } = element.setting;
 	const patternsAndSchemas = Object
 		.entries(objectPatternProperties ?? {})
-		.map(([pattern, schema]) => ({
-			pattern: new RegExp(pattern),
-			schema
-		}));
+		.map(([pattern, schema]) => {
+			try {
+				return {
+					pattern: new RegExp(pattern),
+					schema
+				};
+			} catch (e) {
+				// Invalid regex pattern in settings schema, skip it
+				return null;
+			}
+		})
+		.filter((item): item is { pattern: RegExp; schema: any } => item !== null);
 
 	const wellDefinedKeyEnumOptions = Object.entries(objectProperties ?? {}).map(
 		([key, schema]) => ({ value: key, description: schema.description })

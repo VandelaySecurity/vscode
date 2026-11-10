@@ -1696,38 +1696,49 @@ abstract class SettingIncludeExcludeRenderer extends AbstractSettingRenderer imp
 
 	private onDidChangeIncludeExclude(template: ISettingIncludeExcludeItemTemplate, e: SettingListEvent<IListDataItem>): void {
 		if (template.context) {
-			const newValue = { ...template.context.scopeValue };
+			const newValue = Object.create(null);
+			Object.assign(newValue, template.context.scopeValue);
 
 			// first delete the existing entry, if present
 			if (e.type !== 'add') {
-				if (e.originalItem.value.data.toString() in template.context.defaultValue) {
+				const originalKey = e.originalItem.value.data.toString();
+				if (!this.isSafePropertyKey(originalKey)) {
+					return;
+				}
+				if (originalKey in template.context.defaultValue) {
 					// delete a default by overriding it
-					newValue[e.originalItem.value.data.toString()] = false;
+					newValue[originalKey] = false;
 				} else {
-					delete newValue[e.originalItem.value.data.toString()];
+					delete newValue[originalKey];
 				}
 			}
 
 			// then add the new or updated entry, if present
 			if (e.type === 'change' || e.type === 'add' || e.type === 'move') {
-				if (e.newItem.value.data.toString() in template.context.defaultValue && !e.newItem.sibling) {
+				const newKey = e.newItem.value.data.toString();
+				if (!this.isSafePropertyKey(newKey)) {
+					return;
+				}
+				if (newKey in template.context.defaultValue && !e.newItem.sibling) {
 					// add a default by deleting its override
-					delete newValue[e.newItem.value.data.toString()];
+					delete newValue[newKey];
 				} else {
-					newValue[e.newItem.value.data.toString()] = e.newItem.sibling ? { when: e.newItem.sibling } : true;
+					newValue[newKey] = e.newItem.sibling ? { when: e.newItem.sibling } : true;
 				}
 			}
 
-			function sortKeys<T extends object>(obj: T) {
+			const sortKeys = <T extends object>(obj: T) => {
 				const sortedKeys = Object.keys(obj)
 					.sort((a, b) => a.localeCompare(b)) as Array<keyof T>;
 
-				const retVal: Partial<T> = {};
+				const retVal: Partial<T> = Object.create(null);
 				for (const key of sortedKeys) {
-					retVal[key] = obj[key];
+					if (typeof key === 'string' && this.isSafePropertyKey(key)) {
+						retVal[key] = obj[key];
+					}
 				}
 				return retVal;
-			}
+			};
 
 			this._onDidChangeSetting.fire({
 				key: template.context.setting.key,
@@ -1737,6 +1748,10 @@ abstract class SettingIncludeExcludeRenderer extends AbstractSettingRenderer imp
 				scope: template.context.setting.scope
 			});
 		}
+	}
+
+	private isSafePropertyKey(key: string): boolean {
+		return key !== '__proto__' && key !== 'constructor' && key !== 'prototype';
 	}
 
 	renderElement(element: ITreeNode<SettingsTreeSettingElement, never>, index: number, templateData: ISettingIncludeExcludeItemTemplate): void {

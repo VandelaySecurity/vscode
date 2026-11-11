@@ -1250,67 +1250,67 @@ class ExtensionsContributions extends Disposable implements IWorkbenchContributi
 			id: 'workbench.extensions.action.showDisabledExtensions',
 			title: localize2('showDisabledExtensions', 'Show Disabled Extensions'),
 			category: ExtensionsLocalizedLabel,
-			menu: [{
-				id: MenuId.CommandPalette,
-				when: ContextKeyExpr.or(CONTEXT_HAS_LOCAL_SERVER, CONTEXT_HAS_REMOTE_SERVER, CONTEXT_HAS_WEB_SERVER)
-			}, {
-				id: extensionsFilterSubMenu,
-				group: '3_installed',
-				order: 5,
-			}],
-			menuTitles: {
-				[extensionsFilterSubMenu.id]: localize('disabled filter', "Disabled")
-			},
-			run: () => this.extensionsWorkbenchService.openSearch('@disabled ')
-		});
+		menu: [{
+			id: MenuId.CommandPalette,
+			when: ContextKeyExpr.or(CONTEXT_HAS_LOCAL_SERVER, CONTEXT_HAS_REMOTE_SERVER, CONTEXT_HAS_WEB_SERVER)
+		}, {
+			id: extensionsFilterSubMenu,
+			group: '3_installed',
+			order: 5,
+		}],
+		menuTitles: {
+			[extensionsFilterSubMenu.id]: localize('disabled filter', "Disabled")
+		},
+		run: () => this.extensionsWorkbenchService.openSearch('@disabled ')
+	});
 
-		const extensionsSortSubMenu = new MenuId('extensionsSortSubMenu');
-		MenuRegistry.appendMenuItem(extensionsFilterSubMenu, {
-			submenu: extensionsSortSubMenu,
-			title: localize('sorty by', "Sort By"),
-			when: ContextKeyExpr.and(ContextKeyExpr.or(CONTEXT_HAS_GALLERY, DefaultViewsContext)),
-			group: '4_sort',
-			order: 1,
-		});
+	const extensionsSortSubMenu = new MenuId('extensionsSortSubMenu');
+	MenuRegistry.appendMenuItem(extensionsFilterSubMenu, {
+		submenu: extensionsSortSubMenu,
+		title: localize('sorty by', "Sort By"),
+		when: ContextKeyExpr.and(ContextKeyExpr.or(CONTEXT_HAS_GALLERY, DefaultViewsContext)),
+		group: '4_sort',
+		order: 1,
+	});
 
-		[
-			{ id: 'installs', title: localize('sort by installs', "Install Count"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.InstallCount },
-			{ id: 'rating', title: localize('sort by rating', "Rating"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.WeightedRating },
-			{ id: 'name', title: localize('sort by name', "Name"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.Title },
-			{ id: 'publishedDate', title: localize('sort by published date', "Published Date"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.PublishedDate },
-			{ id: 'updateDate', title: localize('sort by update date', "Updated Date"), precondition: ContextKeyExpr.and(SearchMarketplaceExtensionsContext.negate(), RecommendedExtensionsContext.negate(), BuiltInExtensionsContext.negate()), sortCapability: 'UpdateDate' },
-		].map(({ id, title, precondition, sortCapability }, index) => {
-			const sortCapabilityContext = ContextKeyExpr.regex(CONTEXT_GALLERY_SORT_CAPABILITIES.key, new RegExp(`_${sortCapability}_`));
-			this.registerExtensionAction({
-				id: `extensions.sort.${id}`,
-				title,
-				precondition: ContextKeyExpr.and(precondition, ContextKeyExpr.regex(ExtensionsSearchValueContext.key, /^@contribute:/).negate(), sortCapabilityContext),
-				menu: [{
-					id: extensionsSortSubMenu,
-					when: ContextKeyExpr.and(ContextKeyExpr.or(CONTEXT_HAS_GALLERY, DefaultViewsContext), sortCapabilityContext),
-					order: index,
-				}],
-				toggled: ExtensionsSortByContext.isEqualTo(id),
-				run: async () => {
-					const extensionsViewPaneContainer = ((await this.viewsService.openViewContainer(VIEWLET_ID, true))?.getViewPaneContainer()) as IExtensionsViewPaneContainer | undefined;
-					const currentQuery = Query.parse(extensionsViewPaneContainer?.searchValue ?? '');
-					extensionsViewPaneContainer?.search(new Query(currentQuery.value, id).toString());
-					extensionsViewPaneContainer?.focus();
-				}
-			});
-		});
-
+	[
+		{ id: 'installs', title: localize('sort by installs', "Install Count"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.InstallCount },
+		{ id: 'rating', title: localize('sort by rating', "Rating"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.WeightedRating },
+		{ id: 'name', title: localize('sort by name', "Name"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.Title },
+		{ id: 'publishedDate', title: localize('sort by published date', "Published Date"), precondition: BuiltInExtensionsContext.negate(), sortCapability: SortBy.PublishedDate },
+		{ id: 'updateDate', title: localize('sort by update date', "Updated Date"), precondition: ContextKeyExpr.and(SearchMarketplaceExtensionsContext.negate(), RecommendedExtensionsContext.negate(), BuiltInExtensionsContext.negate()), sortCapability: 'UpdateDate' },
+	].map(({ id, title, precondition, sortCapability }, index) => {
+		const sortCapabilityContext = ContextKeyExpr.regex(CONTEXT_GALLERY_SORT_CAPABILITIES.key, new RegExp(`_${escapeRegExpCharacters(String(sortCapability))}_`));
 		this.registerExtensionAction({
-			id: 'workbench.extensions.action.clearExtensionsSearchResults',
-			title: localize2('clearExtensionsSearchResults', 'Clear Extensions Search Results'),
-			category: ExtensionsLocalizedLabel,
-			icon: clearSearchResultsIcon,
-			f1: true,
-			precondition: SearchHasTextContext,
-			menu: {
-				id: extensionsSearchActionsMenu,
-				group: 'navigation',
-				order: 1,
+			id: `extensions.sort.${id}`,
+			title,
+			precondition: ContextKeyExpr.and(precondition, ContextKeyExpr.regex(ExtensionsSearchValueContext.key, /^@contribute:/).negate(), sortCapabilityContext),
+			menu: [{
+				id: extensionsSortSubMenu,
+				when: ContextKeyExpr.and(ContextKeyExpr.or(CONTEXT_HAS_GALLERY, DefaultViewsContext), sortCapabilityContext),
+				order: index,
+			}],
+			toggled: ExtensionsSortByContext.isEqualTo(id),
+			run: async () => {
+				const extensionsViewPaneContainer = ((await this.viewsService.openViewContainer(VIEWLET_ID, true))?.getViewPaneContainer()) as IExtensionsViewPaneContainer | undefined;
+				const currentQuery = Query.parse(extensionsViewPaneContainer?.searchValue ?? '');
+				extensionsViewPaneContainer?.search(new Query(currentQuery.value, id).toString());
+				extensionsViewPaneContainer?.focus();
+			}
+		});
+	});
+
+	this.registerExtensionAction({
+		id: 'workbench.extensions.action.clearExtensionsSearchResults',
+		title: localize2('clearExtensionsSearchResults', 'Clear Extensions Search Results'),
+		category: ExtensionsLocalizedLabel,
+		icon: clearSearchResultsIcon,
+		f1: true,
+		precondition: SearchHasTextContext,
+		menu: {
+			id: extensionsSearchActionsMenu,
+			group: 'navigation',
+			order: 1,
 			},
 			run: async (accessor: ServicesAccessor) => {
 				const viewPaneContainer = accessor.get(IViewsService).getActiveViewPaneContainerWithId(VIEWLET_ID);

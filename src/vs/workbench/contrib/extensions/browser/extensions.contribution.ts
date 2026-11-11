@@ -1028,67 +1028,67 @@ class ExtensionsContributions extends Disposable implements IWorkbenchContributi
 									e(error);
 									return;
 								}
-							}
-							c();
-						}));
-						disposables.add(quickPick.onDidHide(() => disposables.dispose()));
-						quickPick.show();
-					});
-				} else {
-					const fileDialogService = accessor.get(IFileDialogService);
-					const extensionLocation = await fileDialogService.showOpenDialog({
-						canSelectFolders: true,
-						canSelectFiles: false,
-						canSelectMany: false,
-						title: localize('installFromLocation', "Install Extension from Location"),
-					});
-					if (extensionLocation?.[0]) {
-						await extensionManagementService.installFromLocation(extensionLocation[0]);
-					}
+						}
+						c();
+					}));
+					disposables.add(quickPick.onDidHide(() => disposables.dispose()));
+					quickPick.show();
+				});
+			} else {
+				const fileDialogService = accessor.get(IFileDialogService);
+				const extensionLocation = await fileDialogService.showOpenDialog({
+					canSelectFolders: true,
+					canSelectFiles: false,
+					canSelectMany: false,
+					title: localize('installFromLocation', "Install Extension from Location"),
+				});
+				if (extensionLocation?.[0]) {
+					await extensionManagementService.installFromLocation(extensionLocation[0]);
 				}
 			}
-		});
+		}
+	});
 
-		MenuRegistry.appendMenuItem(extensionsSearchActionsMenu, {
-			submenu: extensionsFilterSubMenu,
-			title: localize('filterExtensions', "Filter Extensions..."),
-			group: 'navigation',
-			order: 2,
-			icon: filterIcon,
-		});
+	MenuRegistry.appendMenuItem(extensionsSearchActionsMenu, {
+		submenu: extensionsFilterSubMenu,
+		title: localize('filterExtensions', "Filter Extensions..."),
+		group: 'navigation',
+		order: 2,
+		icon: filterIcon,
+	});
 
-		const showFeaturedExtensionsId = 'extensions.filter.featured';
-		const featuresExtensionsWhenContext = ContextKeyExpr.and(CONTEXT_HAS_GALLERY, ContextKeyExpr.regex(CONTEXT_GALLERY_FILTER_CAPABILITIES.key, new RegExp(`_${FilterType.Featured}_`)));
-		this.registerExtensionAction({
-			id: showFeaturedExtensionsId,
-			title: localize2('showFeaturedExtensions', 'Show Featured Extensions'),
-			category: ExtensionsLocalizedLabel,
-			menu: [{
-				id: MenuId.CommandPalette,
-				when: featuresExtensionsWhenContext
-			}, {
-				id: extensionsFilterSubMenu,
-				when: featuresExtensionsWhenContext,
-				group: '1_predefined',
-				order: 1,
-			}],
-			menuTitles: {
-				[extensionsFilterSubMenu.id]: localize('featured filter', "Featured")
-			},
-			run: () => this.extensionsWorkbenchService.openSearch('@featured ')
-		});
+	const showFeaturedExtensionsId = 'extensions.filter.featured';
+	const featuresExtensionsWhenContext = ContextKeyExpr.and(CONTEXT_HAS_GALLERY, ContextKeyExpr.regex(CONTEXT_GALLERY_FILTER_CAPABILITIES.key, new RegExp(`_${escapeRegExpCharacters(FilterType.Featured)}_`)));
+	this.registerExtensionAction({
+		id: showFeaturedExtensionsId,
+		title: localize2('showFeaturedExtensions', 'Show Featured Extensions'),
+		category: ExtensionsLocalizedLabel,
+		menu: [{
+			id: MenuId.CommandPalette,
+			when: featuresExtensionsWhenContext
+		}, {
+			id: extensionsFilterSubMenu,
+			when: featuresExtensionsWhenContext,
+			group: '1_predefined',
+			order: 1,
+		}],
+		menuTitles: {
+			[extensionsFilterSubMenu.id]: localize('featured filter', "Featured")
+		},
+		run: () => this.extensionsWorkbenchService.openSearch('@featured ')
+	});
 
-		this.registerExtensionAction({
-			id: 'workbench.extensions.action.showPopularExtensions',
-			title: localize2('showPopularExtensions', 'Show Popular Extensions'),
-			category: ExtensionsLocalizedLabel,
-			menu: [{
-				id: MenuId.CommandPalette,
-				when: CONTEXT_HAS_GALLERY
-			}, {
-				id: extensionsFilterSubMenu,
-				when: CONTEXT_HAS_GALLERY,
-				group: '1_predefined',
+	this.registerExtensionAction({
+		id: 'workbench.extensions.action.showPopularExtensions',
+		title: localize2('showPopularExtensions', 'Show Popular Extensions'),
+		category: ExtensionsLocalizedLabel,
+		menu: [{
+			id: MenuId.CommandPalette,
+			when: CONTEXT_HAS_GALLERY
+		}, {
+			id: extensionsFilterSubMenu,
+			when: CONTEXT_HAS_GALLERY,
+			group: '1_predefined',
 				order: 2,
 			}],
 			menuTitles: {
